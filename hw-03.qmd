@@ -4,6 +4,10 @@ author: "Sravani Maddineni"
 format:
   html:
     embed-resources: true
+execute :
+  warning: false
+  message: false
+  error: false
 toc: true
 ---
 
@@ -11,6 +15,95 @@ toc: true
 
 ```{r}
 # label: label-me-1
+# Load libraries
+library(ggplot2)
+library(tidyr)
+library(readr)
+library(dplyr)
+library(stringr)
+library(tinytex)
+library(jpeg)
+library(grid)
+library(scales)
+
+
+
+library(cowplot)
+
+# Load the background image
+bg_img <- readJPEG("C:/Users/Reliance/Desktop/dataviz/hw-03/parchment.jpeg")
+
+# Load and prepare the data
+data <- read_csv("C:/Users/Reliance/Desktop/dataviz/hw-03/income.csv")
+income_long <- data %>%
+  pivot_longer(cols = Rent:Other, names_to = "Category", values_to = "Expenditure") %>%
+  mutate(Category = factor(Category, levels = c("Rent", "Food", "Clothes", "Tax", "Other"), ordered = TRUE)) %>%
+  mutate(Class_Label = paste("CLASS: ", Class, "\nACTUAL AVERAGE: ", Average_Income))
+
+# Calculate total expenditure for each class
+total_expenditure <- income_long %>%
+  group_by(Class_Label) %>%
+  summarise(Total = sum(Expenditure), .groups = 'drop')
+
+# Join total expenditure back to income_long
+income_long <- income_long %>%
+  left_join(total_expenditure, by = "Class_Label") %>%
+  mutate(Percentage = (Expenditure / Total) * 100)
+
+# Define category colors
+category_colors <- c(
+  Rent = "black",
+  Food = "purple",
+  Clothes = "pink",
+  Tax = "lightblue",
+  Other = "grey"
+)
+
+# Create the main plot
+p <- ggplot(income_long, aes(x = Expenditure, y = reorder(Class_Label, -Average_Income), fill = Category)) +
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE), width = 0.7) + 
+  geom_text(aes(label = ifelse(Percentage >= 1.5, paste0(round(Percentage, 1), "%"), "")), 
+            position = position_stack(reverse = TRUE, vjust = 0.5), size = 2.5, 
+            color = ifelse(income_long$Category == "Rent", "white", "black")) +
+  scale_fill_manual(values = category_colors) +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "transparent", color = NA),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(), 
+    axis.title.y = element_blank(),
+    axis.text.y = element_text(size = 10, face = "bold"),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "top",
+    legend.title = element_blank(),
+    axis.title.x = element_blank(),
+    legend.text = element_blank(),
+    legend.key.width = unit(2.2, "cm"),
+    legend.spacing.x = unit(0, "cm"),
+    plot.margin = margin(t = 80, r = 20, b = 40, l = 20),
+    plot.caption = element_text(hjust = 0.5)
+  ) +
+  guides(fill = guide_legend(ncol = 5, byrow = TRUE)) 
+
+# Title and subtitle annotations
+title <- ggdraw() +
+  draw_label("INCOME AND EXPENDITURE OF 150 NEGRO FAMILIES IN ATLANTA,GA,USA", 
+             fontface = 'bold', x = 0.5, y = 0.65, hjust = 0.5, size = 12) +
+  draw_label("Annual Expenditure for    Rent    Food    Clothes    Direct Taxes    Others", 
+             x = 0.5, y = 0.45, hjust = 0.5, size = 10)
+
+# Combine title, subtitle, background, and main plot
+final_plot <- ggdraw() +
+  draw_grob(rasterGrob(bg_img, width = unit(1, "npc"), height = unit(1, "npc"))) +
+  draw_plot(title, x = 0, y = 0.85, width = 1, height = 0.15) + # Adjust title positioning
+  draw_plot(p)
+
+# Display the final plot
+print(final_plot)
+```
+Interpretion:
+This R code creates a historical-style chart that shows how different income classes in Atlanta spent their money on categories like rent, food, clothes, taxes, and other expenses. It processes the data to calculate how much of each class’s total income went to each category, and then displays this using a colorful stacked bar chart. The chart uses a parchment paper background and adds a bold title and subtitle to match the style of W.E.B. Du Bois’s original 1900 design. Each bar represents a class, and percentage labels appear for spending categories that take up more than 1.5% of the budget, making it easy to compare spending habits across income levels.
 
 
 ```
@@ -22,46 +115,15 @@ toc: true
 
 ```
 Interpret:
-The plot displays the responses of various demographic groups of nursing and medical
-students to statements regarding the COVID-19 vaccine. The Likert scale ranges from 1
-(strongly agree) to 5 (strongly disagree), with lower scores denoting more optimistic
-viewpoints.
+In analyzing the survey results on attitudes toward COVID-19 vaccination among medical and nursing students across the U.S., the visualization reveals a range of insights across various demographic groups. Here are three notable patterns, some of which align with intuition and some that deviate.
 
-Main takeaways –
+Age Differences in Perceived Safety and Vaccine Recommendations: In both age categories, the majority of respondents agree with the statement “By my best knowledge I do not have any doubt the vaccine is safe” and would encourage their family, friends and the community at large to take the vaccine. This can be further seen by the decreased Likert values (tending towards 1) and narrow bars of error for these groups in these categories. The youngest respondents (26 years old) exhibit the lowest mean score, while 26-30 and >30 years old respondents indicate somewhat higher mean values and larger error bars, indicating higher opinion variance. This could be interpreted to mean that for some reason, the younger students may for example, due to less likely hood of getting seriously ill with the virus or due to the fact that they are more exposed to information about the vaccine during their studies, may feel more comfortable supporting the vaccine. That brightness can be suggested by the discovery that younger individuals, particularly in medical fields may be more inclined to recommend vaccines.
 
-A thorough comparison of medical and nursing students’ opinions regarding the COVID19 vaccine across the US is shown in the visualization. A demographic or experiential
-variable is represented by each row, and a statement about vaccine perception is
-represented by each column. A Likert scale ranging from 1 (strongly agree) to 5
-(strongly disagree) is used to record the responses; higher agreement is indicated by
-lower mean values. By providing a layered view of both consensus and disagreement,
-error bars enable us to interpret the variability within each group.
+Gender Variations in Confidence and Concern Over Safety: Some of the variations in attitudes to COVID-19 vaccines are quite subtle but are markedly different between male and female participants. The results reveal fairly high levels of confidence in both the safety of vaccines and the scientific review process among both males and females, as evidenced by mean Likert scale scores of approximately 2. However, there is a slightly higher concern among respondents belonging to the Non Binary / Third gender Category mean scored 2.89 in vaccine safety and 2.9 in the side effect of the vaccine with closer to 3. This is similar to studies done on gender minorities where people of the minority gender are more likely to have a liberal attitude towards health interventions because of the bias that has been accorded to them in the past or unfavourable convictions about medical research. As I expected, gender identify could have an impact on perceptions of new medical technologies but the degree of this effect is barely discernable in this case.
 
-The disparity in vaccination confidence between nursing and medical students is among
-the most obvious trends. When it comes to statements like “The vaccine is safe,” “I trust
-the information I have received,” and “I will recommend the vaccine to others,” medical
-students consistently report lower Likert scores, which indicate stronger agreement.
-Nursing students, on the other hand, typically have higher mean scores, indicating a
-comparatively more cautious or skeptic attitude toward the vaccine. This is in line with
-expectations because medical students usually undergo more thorough clinical and
-scientific training in areas such as disease prevention, vaccinations, and public health.
+Prior COVID-19 and Flu Vaccination as Predictors of Vaccine Confidence: Exploration of means indicates that prior coverage for COVID-19 vaccine has some students more confident with safety and scientific rigor, currently at mean 1-2. In contrast, students who had not taken the COVID vaccine had intermediate or even negative attitudes, with scores equal to 3. Likewise, those who have taken a flu vaccine this year are relatively more likely to encourage others to take the COVID-19 vaccines. This finding is aligned with the theory that previous uptake behaviour is a great predictor of favourable attitudes towards vaccines because previous experience with vaccinations must mitigate hesitance and build confidence in vaccination.
 
-Comparing students according to whether they have personally received the COVID-19
-vaccine yields another important finding. In almost every statement, respondents who
-had previously received a vaccination exhibit greater agreement. Their mean scores are
-much lower, especially when it comes to questions about their willingness to
-recommend the vaccine and their level of trust in scientific vetting. This implies that
-firsthand vaccination experience is linked to increased self-assurance and trust, which is
-consistent with behavioral health models that show behavior frequently reinforces
-attitude.
-
-Finally, there is consistently more concern about vaccine safety and side effects than
-agreement with other statements. Younger students, particularly those under 25, are
-particularly affected by this. For the statement “I am concerned about the safety and
-side effects of the vaccine,” their average Likert scores are higher and fall closer to the
-neutral or disagree end of the spectrum. This suggests that although younger students
-might have faith in the idea of vaccination in general, specific worries about side effects
-continue to be a major psychological barrier, perhaps as a result of either increased
-exposure to vaccine-related misinformation or limited clinical exposure.
+Altogether, these cases give a picture of how demographic features interconnect in the course of attitude formation toward vaccination. This help to identify the expectant and unexpectant trends in acceptance and with the help of specific segment marketing approaches that may help improve the acceptance level of the vaccine among those groups who may have specific reasons not to accept the vaccine.
 
 ## 3 - COVID survey - reconstruct
 ```{r}
@@ -163,7 +225,12 @@ This plot visualizes how different demographic and experiential groups responded
 
 
 ## 4 - COVID survey - re-reconstruct
+
+
+
 ```{r}
+```{r}
+library(tidyverse)
 # Recalculate summary statistics with 25th and 75th percentiles
 covid_survey_summary_iqr <- covid_survey_longer %>%
   group_by(explanatory, explanatory_value, response) %>%
@@ -237,13 +304,17 @@ ggplot(covid_survey_summary_stats_iqr, aes(x = mean, y = fct_rev(explanatory_val
     strip.text = element_text(face = "bold"),
     panel.spacing = unit(1, "lines")
   )
+```
+
+
+
 
 ```
-Interpretion:
-This revised plot gives a more robust view of variability by focusing on the interquartile
-range (middle 50%), rather than the broader 80% used in Question 2. As a result: The error bars are shorter, reducing the impression of high variability in some groups. Outliers are de-emphasized, offering a more stable picture of how responses vary. Some conclusions from Q2 about group differences may appear more stable or less extreme.
- Conclusion: Using the IQR makes the chart more interpretable and aligned with best
-practices for Likert-type data. It does not radically change the key findings but strengthens confidence in central tendencies.
+
+```
+Interpretion: 
+ This revised plot gives a more robust view of variability by focusing on the interquartile range (middle 50%), rather than the broader 80% used in Question 2. As a result: The error bars are shorter, reducing the impression of high variability in some groups. Outliers are de-emphasized, offering a more stable picture of how responses vary. Some conclusions from Q2 about group differences may appear more stable or less extreme. Conclusion: Using the IQR makes the chart more interpretable and aligned with best practices for Likert-type data. It does not radically change the key findings but strengthens confidence in central tendencies.
+
 
 
 ## 5 - COVID survey - another view
@@ -302,9 +373,8 @@ ggplot(likert_data, aes(x = question, fill = factor(response))) +
 
 ```
 5C.
-The diverging bar chart is easier for comparing absolute sentiment levels across questions.
-It shows how many people were positive or negative, which is useful for gauging the
-magnitude of support or concern.
-The 100% stacked bar chart better supports within-question comparison — it shows how
-responses are distributed across the Likert scale but masks absolute differences in
-sample size. It’s best for proportional analysis.
+The visualization shows the distribution of responses for each question, making it simple to visually compare percentage distributions. The bars extend in opposite directions, highlighting response polarity and clearly representing the ‘agree-disagree’ scale for each question.
+
+100% Stacked Bar: This chart displays the proportional breakdown of each response option by question, offering a normalized view of response percentages. It effectively shows the composition of response categories within each question.
+
+Comparability: The diverging chart emphasizes response ranges, making it easier to compare overall agreement or disagreement between questions. On the other hand, the 100% stacked chart normalizes responses, focusing on the proportion of each response category. While the stacked format shows response distribution, it requires more effort to gauge agreement or disagreement between questions compared to the diverging chart.
