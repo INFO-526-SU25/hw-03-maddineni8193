@@ -10,7 +10,7 @@ toc: true
 ## 1 - Du Bois challenge.
 
 ```{r}
-#| label: label-me-1
+# label: label-me-1
 
 ```
 
@@ -22,6 +22,100 @@ toc: true
 ```
 
 ## 3 - COVID survey - reconstruct
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Load and clean the COVID survey data
+covid_survey <- read_csv("data/covid-survey.csv", skip = 1) %>%
+  filter(!if_all(-response_id, is.na)) %>%
+  mutate(
+    exp_already_vax = recode(as.character(exp_already_vax), "0" = "No", "1" = "Yes"),
+    exp_flu_vax = recode(as.character(exp_flu_vax), "0" = "No", "1" = "Yes"),
+    exp_profession = recode(as.character(exp_profession), "0" = "Medical", "1" = "Nursing"),
+    exp_gender = recode(as.character(exp_gender), 
+                        "0" = "Male", "1" = "Female", 
+                        "3" = "Non-binary third gender", 
+                        "4" = "Prefer not to say"),
+    exp_race = recode(as.character(exp_race),
+                      "1" = "American Indian / Alaskan Native", 
+                      "2" = "Asian",
+                      "3" = "Black / African American", 
+                      "4" = "Native Hawaiian / Other Pacific Islander", 
+                      "5" = "White"),
+    exp_ethnicity = recode(as.character(exp_ethnicity),
+                           "1" = "Hispanic / Latino", 
+                           "2" = "Non-Hispanic/Non-Latino"),
+    exp_age_bin = recode(as.character(exp_age_bin),
+                         "0" = "<20", "20" = "21-25", 
+                         "25" = "26-30", "30" = ">30")
+  )
+
+# Transform to long format
+covid_survey_longer <- covid_survey %>%
+  pivot_longer(cols = starts_with("exp_"), 
+               names_to = "explanatory", 
+               values_to = "explanatory_value") %>%
+  filter(!is.na(explanatory_value)) %>%
+  pivot_longer(cols = starts_with("resp_"), 
+               names_to = "response", 
+               values_to = "response_value")
+
+# Summary statistics by group (10th and 90th percentiles)
+covid_survey_summary_stats_by_group <- covid_survey_longer %>%
+  group_by(explanatory, explanatory_value, response) %>%
+  summarise(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, 0.10, na.rm = TRUE),
+    high = quantile(response_value, 0.90, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Summary stats for the full dataset ("All" group)
+covid_survey_summary_stats_all <- covid_survey_longer %>%
+  group_by(response) %>%
+  summarise(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, 0.10, na.rm = TRUE),
+    high = quantile(response_value, 0.90, na.rm = TRUE),
+    explanatory = "All",
+    explanatory_value = factor("")
+  )
+
+# Combine both
+covid_survey_summary_stats <- bind_rows(
+  covid_survey_summary_stats_all,
+  covid_survey_summary_stats_by_group
+)
+
+# Define readable response labels
+response_labels <- c(
+  resp_safety = "Based on my understanding, I believe the vaccine is safe",
+  resp_confidence_science = "I am confident in the scientific vetting process for the new COVID vaccines",
+  resp_concern_safety = "I am concerned about the safety and side effects of the vaccine",
+  resp_feel_safe_at_work = "Getting the vaccine will make me feel safer at work",
+  resp_will_recommend = "I will recommend the vaccine to family, friends, and community members",
+  resp_trust_info = "I trust the information that I have received about the vaccines"
+)
+
+# Plot
+ggplot(covid_survey_summary_stats, aes(x = explanatory_value, y = mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = low, ymax = high), width = 0.2) +
+  facet_grid(response ~ explanatory, scales = "free_x",
+             labeller = labeller(
+               response = as_labeller(response_labels),
+               explanatory = label_wrap_gen(15)
+             )) +
+  theme_minimal() +
+  theme(strip.background = element_rect(fill = "gray90", color = NA),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "", y = "Mean Response Value")
+
+
+```
+Interpretion:
+This plot visualizes how different demographic and experiential groups responded to COVID-19 vaccine-related survey questions, using mean Likert-scale ratings and error bars spanning the 10th to 90th percentiles. Each point represents the average response for a specific subgroup (e.g., Female, Nursing, or Age 21–25) to a given question, allowing us to compare attitudes across groups. For instance, we can observe whether trust in vaccine information or concern about side effects varies by age, gender, or professional background. The inclusion of overall averages (“All”) provides a baseline for comparison. Overall, the plot highlights both the central tendencies and variability in vaccine perceptions across key explanatory variables.
 
 
 ## 4 - COVID survey - re-reconstruct
