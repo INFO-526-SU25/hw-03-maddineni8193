@@ -156,6 +156,8 @@ ggplot(covid_survey_summary_stats, aes(x = explanatory_value, y = mean)) +
 
 
 ```
+
+
 Interpretion:
 This plot visualizes how different demographic and experiential groups responded to COVID-19 vaccine-related survey questions, using mean Likert-scale ratings and error bars spanning the 10th to 90th percentiles. Each point represents the average response for a specific subgroup (e.g., Female, Nursing, or Age 21–25) to a given question, allowing us to compare attitudes across groups. For instance, we can observe whether trust in vaccine information or concern about side effects varies by age, gender, or professional background. The inclusion of overall averages (“All”) provides a baseline for comparison. Overall, the plot highlights both the central tendencies and variability in vaccine perceptions across key explanatory variables.
 
