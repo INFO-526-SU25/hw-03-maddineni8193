@@ -313,7 +313,7 @@ ggplot(covid_survey_summary_stats_iqr, aes(x = mean, y = fct_rev(explanatory_val
 
 ```
 Interpretion: 
- This revised plot gives a more robust view of variability by focusing on the interquartile range (middle 50%), rather than the broader 80% used in Question 2. As a result: The error bars are shorter, reducing the impression of high variability in some groups. Outliers are de-emphasized, offering a more stable picture of how responses vary. Some conclusions from Q2 about group differences may appear more stable or less extreme. Conclusion: Using the IQR makes the chart more interpretable and aligned with best practices for Likert-type data. It does not radically change the key findings but strengthens confidence in central tendencies.
+ When using the 25th and 75th percentiles instead of the 10th and 90th, the error bars in the plot become noticeably narrower. This change reduces the appearance of variability, helping focus on the core distribution of opinions rather than outliers. While the overall trends across groups remain consistent, this version more accurately reflects the middle range of responses, avoiding possible exaggeration caused by extreme values in the original plot.
 
 
 
