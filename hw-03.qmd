@@ -1,6 +1,6 @@
 ---
 title: "HW 03"
-author: "INSERT YOUR NAME HERE"
+author: "Sravani Maddineni"
 format:
   html:
     embed-resources: true
@@ -12,6 +12,7 @@ toc: true
 ```{r}
 # label: label-me-1
 
+
 ```
 
 ## 2 - COVID survey - interpret
@@ -20,6 +21,47 @@ toc: true
 #| label: label-me-2
 
 ```
+Interpret:
+The plot displays the responses of various demographic groups of nursing and medical
+students to statements regarding the COVID-19 vaccine. The Likert scale ranges from 1
+(strongly agree) to 5 (strongly disagree), with lower scores denoting more optimistic
+viewpoints.
+
+Main takeaways –
+
+A thorough comparison of medical and nursing students’ opinions regarding the COVID19 vaccine across the US is shown in the visualization. A demographic or experiential
+variable is represented by each row, and a statement about vaccine perception is
+represented by each column. A Likert scale ranging from 1 (strongly agree) to 5
+(strongly disagree) is used to record the responses; higher agreement is indicated by
+lower mean values. By providing a layered view of both consensus and disagreement,
+error bars enable us to interpret the variability within each group.
+
+The disparity in vaccination confidence between nursing and medical students is among
+the most obvious trends. When it comes to statements like “The vaccine is safe,” “I trust
+the information I have received,” and “I will recommend the vaccine to others,” medical
+students consistently report lower Likert scores, which indicate stronger agreement.
+Nursing students, on the other hand, typically have higher mean scores, indicating a
+comparatively more cautious or skeptic attitude toward the vaccine. This is in line with
+expectations because medical students usually undergo more thorough clinical and
+scientific training in areas such as disease prevention, vaccinations, and public health.
+
+Comparing students according to whether they have personally received the COVID-19
+vaccine yields another important finding. In almost every statement, respondents who
+had previously received a vaccination exhibit greater agreement. Their mean scores are
+much lower, especially when it comes to questions about their willingness to
+recommend the vaccine and their level of trust in scientific vetting. This implies that
+firsthand vaccination experience is linked to increased self-assurance and trust, which is
+consistent with behavioral health models that show behavior frequently reinforces
+attitude.
+
+Finally, there is consistently more concern about vaccine safety and side effects than
+agreement with other statements. Younger students, particularly those under 25, are
+particularly affected by this. For the statement “I am concerned about the safety and
+side effects of the vaccine,” their average Likert scores are higher and fall closer to the
+neutral or disagree end of the spectrum. This suggests that although younger students
+might have faith in the idea of vaccination in general, specific worries about side effects
+continue to be a major psychological barrier, perhaps as a result of either increased
+exposure to vaccine-related misinformation or limited clinical exposure.
 
 ## 3 - COVID survey - reconstruct
 ```{r}
@@ -119,5 +161,148 @@ This plot visualizes how different demographic and experiential groups responded
 
 
 ## 4 - COVID survey - re-reconstruct
+```{r}
+# Recalculate summary statistics with 25th and 75th percentiles
+covid_survey_summary_iqr <- covid_survey_longer %>%
+  group_by(explanatory, explanatory_value, response) %>%
+  summarise(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, 0.25, na.rm = TRUE),
+    high = quantile(response_value, 0.75, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Add "All" category (unconditioned summary stats)
+covid_survey_summary_all_iqr <- covid_survey_longer %>%
+  group_by(response) %>%
+  summarise(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, 0.25, na.rm = TRUE),
+    high = quantile(response_value, 0.75, na.rm = TRUE),
+    explanatory = "All",
+    explanatory_value = factor(""),
+    .groups = "drop"
+  )
+
+# Combine both
+covid_survey_summary_stats_iqr <- bind_rows(
+  covid_survey_summary_all_iqr,
+  covid_survey_summary_iqr
+)
+
+# Define readable labels again
+response_labels <- c(
+  resp_safety = "Based on my understanding, I believe the vaccine is safe",
+  resp_feel_safe_at_work = "Getting the vaccine will make me feel safer at work",
+  resp_concern_safety = "I am concerned about the safety and side effects of the vaccine",
+  resp_confidence_science = "I am confident in the scientific vetting process for the new COVID vaccines",
+  resp_trust_info = "I trust the information that I have received about the vaccines",
+  resp_will_recommend = "I will recommend the vaccine to family, friends, and community members"
+)
+
+explanatory_labels <- c(
+  exp_age_bin = "Age",
+  exp_gender = "Gender",
+  exp_race = "Race",
+  exp_ethnicity = "Ethnicity",
+  exp_profession = "Profession",
+  exp_already_vax = "Had COVID vaccine",
+  exp_flu_vax = "Had flu vaccine this year",
+  All = "All"
+)
+
+# Plot using IQR (25th–75th)
+ggplot(covid_survey_summary_stats_iqr, aes(x = mean, y = fct_rev(explanatory_value))) +
+  geom_point() +
+  geom_errorbarh(aes(xmin = low, xmax = high), height = 0.2) +
+  facet_grid(
+    fct_rev(explanatory) ~ response,
+    scales = "free_y",
+    space = "free_y",
+    labeller = labeller(
+      response = response_labels,
+      explanatory = explanatory_labels
+    )
+  ) +
+  scale_x_continuous(breaks = 1:5) +
+  labs(
+    x = "Mean Likert score",
+    y = NULL,
+    caption = "Error bars range from 25th to 75th percentile"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    panel.spacing = unit(1, "lines")
+  )
+
+```
+Interpretion:
+This revised plot gives a more robust view of variability by focusing on the interquartile
+range (middle 50%), rather than the broader 80% used in Question 2. As a result: The error bars are shorter, reducing the impression of high variability in some groups. Outliers are de-emphasized, offering a more stable picture of how responses vary. Some conclusions from Q2 about group differences may appear more stable or less extreme.
+ Conclusion: Using the IQR makes the chart more interpretable and aligned with best
+practices for Likert-type data. It does not radically change the key findings but strengthens confidence in central tendencies.
+
 
 ## 5 - COVID survey - another view
+```{r}
+# Load required libraries
+library(tidyverse)
+library(forcats)
+library(ggplot2)
+# Prepare Likert-style sentiment data
+likert_data <- covid_survey %>%
+  select(starts_with("resp_")) %>%
+  pivot_longer(everything(), names_to = "question", values_to = "response") %>%
+  mutate(
+    question = fct_recode(question,
+      "Believe safe" = "resp_safety",
+      "Trust science" = "resp_confidence_science",
+      "Concerned" = "resp_concern_safety",
+      "Feel safe" = "resp_feel_safe_at_work",
+      "Would recommend" = "resp_will_recommend",
+      "Trust info" = "resp_trust_info"
+    ),
+    sentiment = case_when(
+      response < 3 ~ "Positive",
+      response > 3 ~ "Negative",
+      TRUE ~ "Neutral"
+    )
+  )
+
+# Plot diverging bar chart
+ggplot(likert_data, aes(x = question, fill = sentiment)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c("Positive" = "#1f78b4", "Negative" = "#e31a1c", "Neutral" = "gray70")) +
+  coord_flip() +
+  labs(
+    title = "Diverging Bar Chart of Vaccine Attitudes",
+    x = NULL,
+    y = "Count of Responses",
+    fill = "Sentiment"
+  ) +
+  theme_minimal()
+
+ggplot(likert_data, aes(x = question, fill = factor(response))) +
+  geom_bar(position = "fill") +
+  scale_fill_brewer(palette = "RdYlBu",
+    labels = c("1: Strongly Agree", "2: Agree", "3: Neutral",
+               "4: Disagree", "5: Strongly Disagree")) +
+  scale_y_continuous(labels = scales::percent) +
+  coord_flip() +
+  labs(
+    title = "100% Stacked Bar Chart",
+    x = NULL,
+    y = "Percentage of Responses",
+    fill = "Response Scale"
+  ) +
+  theme_minimal()
+
+```
+5C.
+The diverging bar chart is easier for comparing absolute sentiment levels across questions.
+It shows how many people were positive or negative, which is useful for gauging the
+magnitude of support or concern.
+The 100% stacked bar chart better supports within-question comparison — it shows how
+responses are distributed across the Likert scale but masks absolute differences in
+sample size. It’s best for proportional analysis.
